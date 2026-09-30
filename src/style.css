@@ -1,0 +1,96 @@
+body {
+  font-family: system-ui, sans-serif;
+  margin: 0 auto;
+  max-width: 900px;
+  padding: 0 16px 48px;
+  color: #222;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0;
+  border-bottom: 1px solid #ddd;
+  margin-bottom: 16px;
+}
+
+nav {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.brand {
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.filters {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.products {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.card {
+  border: 1px solid #ddd;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.category {
+  color: #666;
+  font-size: 0.85em;
+}
+
+.deal {
+  background: #fff4d6;
+  padding: 8px 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+  max-width: 320px;
+}
+
+.error {
+  color: #b00020;
+  margin: 0;
+}
+
+.totals {
+  display: grid;
+  grid-template-columns: max-content max-content;
+  gap: 4px 16px;
+}
+
+.totals dd {
+  margin: 0;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+td,
+th {
+  padding: 6px 12px 6px 0;
+  text-align: left;
+}

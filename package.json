@@ -1,0 +1,23 @@
+{
+  "name": "squally-demo",
+  "private": true,
+  "version": "0.0.0",
+  "description": "A tiny web shop and its Playwright suite, built to feed realistic, messy test data into Squally.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview --port 4173 --strictPort",
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.62.1",
+    "@types/node": "^22.19.0",
+    "squally-reporter": "^0.10.2",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.1"
+  }
+}

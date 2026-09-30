@@ -1,0 +1,49 @@
+name: Tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  schedule:
+    # Minute :17, not :00 - GitHub delays or skips runs queued on the hour.
+    - cron: "17 5,11,17,23 * * *"
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: shard ${{ matrix.shard }}/3
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      # The suite always has one failing test (the real bug), so a failing
+      # shard must not cancel the others.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    env:
+      SQUALLY_REPORT: "1"
+      SQUALLY_INGEST_URL: https://app.squally.dev
+      SQUALLY_INGEST_KEY: ${{ secrets.SQUALLY_INGEST_KEY }}
+      # One Squally run per workflow run, made of the three shards. (The
+      # reporter's own default on GitHub Actions is the same value.)
+      SQUALLY_CI_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Both browsers in every job: chromium and firefox are Playwright
+      # projects, and --shard splits the tests of both across the shards.
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox
+
+      - name: Run Playwright tests
+        # exec: a cancelled workflow sends SIGINT only to the step's top-level
+        # process, so Playwright must be that process to report "cancelled".
+        run: exec ./node_modules/.bin/playwright test --shard=${{ matrix.shard }}/3
