@@ -5,7 +5,8 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("lists all products", async ({ page }) => {
-  await expect(page.getByTestId("product-card")).toHaveCount(12);
+  // intentionally failing: S5 PR scenario
+  await expect(page.getByTestId("product-card")).toHaveCount(13);
   await expect(page.getByTestId("result-count")).toHaveText("12 products");
 });
 
