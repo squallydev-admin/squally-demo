@@ -1,0 +1,145 @@
+name: Matrix scenarios
+
+# MANUAL ONLY. Reproduces how Squally groups runs that are not one sharded
+# suite (squally-app, block 1c follow-up, 05.10.2026), before block 1b fixes
+# them. Every scenario reports to the Demo Shop project. tests.yml stays the
+# regular, scheduled run and is not touched by this file.
+#
+# Each scenario's failing test is the attempt gate (tests/attempt-gate.spec.ts):
+# it fails on attempt 1 of a workflow run and passes on any later attempt, so
+# "Re-run failed jobs" turns the job green. The rest is a stable subset of the
+# Demo Shop suite - the real bug and the flaky tests are left out (UNSTABLE),
+# so the gate is the only thing that decides red or green.
+
+on:
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: Which scenario to run
+        required: true
+        type: choice
+        options:
+          - unsharded
+          - collision
+          - matrix-documented
+          - suite-shard
+
+env:
+  SQUALLY_REPORT: "1"
+  SQUALLY_INGEST_URL: https://app.squally.dev
+  SQUALLY_INGEST_KEY: ${{ secrets.SQUALLY_INGEST_KEY }}
+  # The real bug (multi-buy) and the flaky tests, left out of every scenario.
+  UNSTABLE: "multi-buy|delivery estimate|stock check|customer reviews|today's deal"
+  # The two "suites": test files split in two subsets.
+  API_FILES: tests/auth.spec.ts tests/orders.spec.ts
+  UI_FILES: tests/checkout.spec.ts tests/products.spec.ts
+
+jobs:
+  # One unsharded job; the gate fails on attempt 1. Default ciRunId
+  # (<run_id>-<run_attempt>). Expected: works - the re-run is linked.
+  unsharded:
+    if: inputs.scenario == 'unsharded'
+    name: unsharded
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ATTEMPT_GATE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Run Playwright tests
+        run: exec ./node_modules/.bin/playwright test --project=chromium --grep-invert="$UNSTABLE"
+
+  # Two unsharded jobs in ONE workflow run, default ciRunId - both claim the
+  # same (ciRunId, no shard). "ui" carries the gate. Expected: broken - one
+  # merged Squally run, the slower job's results refused (409).
+  collision:
+    if: inputs.scenario == 'collision'
+    name: collision ${{ matrix.suite }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [api, ui]
+    env:
+      ATTEMPT_GATE: ${{ matrix.suite == 'ui' && '1' || '0' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Run Playwright tests
+        run: |
+          FILES="${{ matrix.suite == 'api' && env.API_FILES || env.UI_FILES }}"
+          [ "$ATTEMPT_GATE" = "1" ] && FILES="$FILES tests/attempt-gate.spec.ts"
+          exec ./node_modules/.bin/playwright test $FILES --project=chromium --grep-invert="$UNSTABLE"
+
+  # A browser matrix, unsharded, with the run id the docs give today:
+  # <run_id>-<run_attempt>-<browser>. firefox carries the gate. Expected:
+  # two runs (fine), but the re-run is NOT linked to the first attempt.
+  matrix-documented:
+    if: inputs.scenario == 'matrix-documented'
+    name: matrix ${{ matrix.browser }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox]
+    env:
+      SQUALLY_CI_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.browser }}
+      ATTEMPT_GATE: ${{ matrix.browser == 'firefox' && '1' || '0' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Run Playwright tests
+        run: |
+          FILES="$API_FILES $UI_FILES"
+          [ "$ATTEMPT_GATE" = "1" ] && FILES="$FILES tests/attempt-gate.spec.ts"
+          exec ./node_modules/.bin/playwright test $FILES --project=${{ matrix.browser }} --grep-invert="$UNSTABLE"
+
+  # Two suites, each sharded in two: suite [api, ui] x shard [1, 2], run id
+  # <run_id>-<suite>-<run_attempt> (attempt last). The gate is in the ui suite,
+  # so one ui shard fails. Expected: two sharded runs (fine); the re-run of
+  # the failed ui shard is not linked and waits for both ui shards, so it ends
+  # incomplete after the run timeout.
+  suite-shard:
+    if: inputs.scenario == 'suite-shard'
+    name: ${{ matrix.suite }} shard ${{ matrix.shard }}/2
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [api, ui]
+        shard: [1, 2]
+    env:
+      SQUALLY_CI_RUN_ID: ${{ github.run_id }}-${{ matrix.suite }}-${{ github.run_attempt }}
+      ATTEMPT_GATE: ${{ matrix.suite == 'ui' && '1' || '0' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Run Playwright tests
+        run: |
+          FILES="${{ matrix.suite == 'api' && env.API_FILES || env.UI_FILES }}"
+          [ "$ATTEMPT_GATE" = "1" ] && FILES="$FILES tests/attempt-gate.spec.ts"
+          exec ./node_modules/.bin/playwright test $FILES --project=chromium --grep-invert="$UNSTABLE" --shard=${{ matrix.shard }}/2
