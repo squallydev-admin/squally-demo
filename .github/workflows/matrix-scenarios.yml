@@ -1,15 +1,18 @@
 name: Matrix scenarios
 
-# MANUAL ONLY. Reproduces how Squally groups runs that are not one sharded
-# suite (squally-app, block 1c follow-up, 05.10.2026), before block 1b fixes
-# them. Every scenario reports to the Demo Shop project. tests.yml stays the
-# regular, scheduled run and is not touched by this file.
+# MANUAL ONLY. How Squally groups runs that are not one sharded suite
+# (squally-app blocks 1c and 1b). Every scenario reports to the Demo Shop
+# project with squally-reporter 0.11.0. tests.yml stays the regular, scheduled
+# run (three shards, no job key) and is not touched by this file.
 #
 # Each scenario's failing test is the attempt gate (tests/attempt-gate.spec.ts):
 # it fails on attempt 1 of a workflow run and passes on any later attempt, so
 # "Re-run failed jobs" turns the job green. The rest is a stable subset of the
 # Demo Shop suite - the real bug and the flaky tests are left out (UNSTABLE),
 # so the gate is the only thing that decides red or green.
+#
+# Every run below also shows "View in CI" on its Squally run page: 0.11.0 sends
+# the GitHub attempt page as ciRunUrl, whatever the run id.
 
 on:
   workflow_dispatch:
@@ -22,6 +25,7 @@ on:
           - unsharded
           - collision
           - matrix-documented
+          - matrix-jobkey
           - suite-shard
 
 env:
@@ -35,8 +39,14 @@ env:
   UI_FILES: tests/checkout.spec.ts tests/products.spec.ts
 
 jobs:
-  # One unsharded job; the gate fails on attempt 1. Default ciRunId
-  # (<run_id>-<run_attempt>). Expected: works - the re-run is linked.
+  # UNSHARDED - one job, default ciRunId <run_id>-<attempt>, the gate fails
+  # attempt 1. Proves: a plain re-run links to the attempt before it.
+  #   runs:          one per attempt (attempt 1 failed, attempt 2 passed)
+  #   chips:         none on attempt 1; "Re-run of #N" on attempt 2,
+  #                  "Re-run: #M" on attempt 1
+  #   check:         "Squally" (no key) - attempt 2's replaces attempt 1's
+  #   re-run link:   attempt 2 -> attempt 1; Compare preselects attempt 1
+  #   expected:      unsharded - each attempt waits for itself
   unsharded:
     if: inputs.scenario == 'unsharded'
     name: unsharded
@@ -55,9 +65,17 @@ jobs:
       - name: Run Playwright tests
         run: exec ./node_modules/.bin/playwright test --project=chromium --grep-invert="$UNSTABLE"
 
-  # Two unsharded jobs in ONE workflow run, default ciRunId - both claim the
-  # same (ciRunId, no shard). "ui" carries the gate. Expected: broken - one
-  # merged Squally run, the slower job's results refused (409).
+  # COLLISION - the OLD setup: two unsharded jobs "api" and "ui" in one
+  # workflow run, default ciRunId, no job key. "ui" carries the gate. Proves:
+  # 0.11.0 refuses the second job at its begin instead of merging it.
+  #   runs:          ONE for the workflow run - the job that began first;
+  #                  the other job's log shows "Squally refused this job
+  #                  (ci_run_collision)" and the job still exits by its own
+  #                  tests (api green, ui red)
+  #   chips:         none
+  #   check:         "Squally" - only the job Squally kept
+  #   re-run link:   none expected (do not re-run)
+  #   expected:      unsharded
   collision:
     if: inputs.scenario == 'collision'
     name: collision ${{ matrix.suite }}
@@ -83,9 +101,16 @@ jobs:
           [ "$ATTEMPT_GATE" = "1" ] && FILES="$FILES tests/attempt-gate.spec.ts"
           exec ./node_modules/.bin/playwright test $FILES --project=chromium --grep-invert="$UNSTABLE"
 
-  # A browser matrix, unsharded, with the run id the docs give today:
-  # <run_id>-<run_attempt>-<browser>. firefox carries the gate. Expected:
-  # two runs (fine), but the re-run is NOT linked to the first attempt.
+  # MATRIX-DOCUMENTED - the OLD per-job id the docs gave before 0.11.0:
+  # SQUALLY_CI_RUN_ID=<run_id>-<attempt>-<browser>, no job key. firefox carries
+  # the gate. Proves: the hand-built id groups each job, but its re-run cannot
+  # be linked (an explicit SQUALLY_CI_RUN_ID sends no ciRunAttempt).
+  #   runs:          two on attempt 1 (chromium passed, firefox failed); one
+  #                  more for firefox after "Re-run failed jobs"
+  #   chips:         none (no job key)
+  #   check:         "Squally" for both jobs - the newest one hides the other
+  #   re-run link:   NONE - firefox attempt 2 is not linked to attempt 1
+  #   expected:      unsharded
   matrix-documented:
     if: inputs.scenario == 'matrix-documented'
     name: matrix ${{ matrix.browser }}
@@ -112,11 +137,62 @@ jobs:
           [ "$ATTEMPT_GATE" = "1" ] && FILES="$FILES tests/attempt-gate.spec.ts"
           exec ./node_modules/.bin/playwright test $FILES --project=${{ matrix.browser }} --grep-invert="$UNSTABLE"
 
-  # Two suites, each sharded in two: suite [api, ui] x shard [1, 2], run id
-  # <run_id>-<suite>-<run_attempt> (attempt last). The gate is in the ui suite,
-  # so one ui shard fails. Expected: two sharded runs (fine); the re-run of
-  # the failed ui shard is not linked and waits for both ui shards, so it ends
-  # incomplete after the run timeout.
+  # MATRIX-JOBKEY - the NEW way: a browser matrix with SQUALLY_CI_JOB_KEY,
+  # no SQUALLY_CI_RUN_ID. The reporter builds <run_id>-<browser>-<attempt> and
+  # sends ciRunAttempt. firefox carries the gate, so "Re-run failed jobs"
+  # re-runs firefox only. Proves: one run, one chip and one check per job, and
+  # the re-run links to its own job's attempt 1.
+  #   runs:          two on attempt 1 (<run_id>-chromium-1 passed,
+  #                  <run_id>-firefox-1 failed); one more after the re-run
+  #                  (<run_id>-firefox-2, passed) - chromium is not re-run
+  #   chips:         "chromium" / "firefox"; firefox attempt 2 also
+  #                  "Re-run of #<firefox attempt 1>"
+  #   check:         "Squally · chromium" (success) and "Squally · firefox"
+  #                  side by side; firefox's turns green after the re-run,
+  #                  titled "Run #M · re-run of #N · ..."
+  #   re-run link:   firefox-2 -> firefox-1 only, never to chromium
+  #   expected:      unsharded - each attempt waits for itself
+  matrix-jobkey:
+    if: inputs.scenario == 'matrix-jobkey'
+    name: jobkey ${{ matrix.browser }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox]
+    env:
+      SQUALLY_CI_JOB_KEY: ${{ matrix.browser }}
+      ATTEMPT_GATE: ${{ matrix.browser == 'firefox' && '1' || '0' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Run Playwright tests
+        run: |
+          FILES="$API_FILES $UI_FILES"
+          [ "$ATTEMPT_GATE" = "1" ] && FILES="$FILES tests/attempt-gate.spec.ts"
+          exec ./node_modules/.bin/playwright test $FILES --project=${{ matrix.browser }} --grep-invert="$UNSTABLE"
+
+  # SUITE-SHARD - two suites, each sharded in two: suite [api, ui] x shard
+  # [1, 2], with SQUALLY_CI_JOB_KEY = the suite (shared by its two shards).
+  # The reporter builds <run_id>-<suite>-<attempt>. The gate is in the ui suite
+  # and lands in ui shard 1/2. Proves: a partial re-run of one suite links to
+  # that suite's attempt 1, waits only for the re-run shard and completes.
+  #   runs:          two on attempt 1 (api passed, ui failed); one more after
+  #                  "Re-run failed jobs" (ui attempt 2, only shard 1 ran)
+  #   chips:         "api" + "shards 2/2", "ui" + "shards 2/2"; ui attempt 2:
+  #                  "ui", "Re-run of #<ui attempt 1>", "shards 1/1"
+  #   check:         "Squally · api" and "Squally · ui"; after the re-run,
+  #                  "Squally · ui" turns green, first line "Re-run of #N:
+  #                  shard 1 re-ran; shard 2 passed in #N and was not re-run."
+  #   re-run link:   ui-2 -> ui-1; the shards panel shows shard 2 as
+  #                  "passed in #N · not re-run"
+  #   expected:      ui attempt 2 expects [1] and completes - never incomplete
   suite-shard:
     if: inputs.scenario == 'suite-shard'
     name: ${{ matrix.suite }} shard ${{ matrix.shard }}/2
@@ -128,7 +204,9 @@ jobs:
         suite: [api, ui]
         shard: [1, 2]
     env:
-      SQUALLY_CI_RUN_ID: ${{ github.run_id }}-${{ matrix.suite }}-${{ github.run_attempt }}
+      # The job key, not a hand-built SQUALLY_CI_RUN_ID: an explicit id would
+      # win and send no attempt, and the re-run could not be linked.
+      SQUALLY_CI_JOB_KEY: ${{ matrix.suite }}
       ATTEMPT_GATE: ${{ matrix.suite == 'ui' && '1' || '0' }}
     steps:
       - uses: actions/checkout@v4
