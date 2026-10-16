@@ -1,12 +1,13 @@
 name: Tests
 
 on:
-  push:
-    branches: [master]
-  pull_request:
+  # ONCE A DAY SINCE 16.10.2026 (owner), when the account's GitHub Actions
+  # budget ran out: it ran four times a day (three shards each) plus on every
+  # push and pull request. No push or pull_request trigger any more; by hand
+  # it still runs at any time.
   schedule:
     # Minute :17, not :00 - GitHub delays or skips runs queued on the hour.
-    - cron: "17 5,11,17,23 * * *"
+    - cron: "17 5 * * *"
   workflow_dispatch:
 
 jobs:

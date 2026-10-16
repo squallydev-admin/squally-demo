@@ -45,9 +45,9 @@ checks that Squally never assumes a branch called `main`.
 
 ## CI
 
-[`.github/workflows/tests.yml`](.github/workflows/tests.yml) runs on every push
-to `master`, on pull requests, four times a day (05:17, 11:17, 17:17, 23:17
-UTC) and by hand. Setup:
+[`.github/workflows/tests.yml`](.github/workflows/tests.yml) runs once a day
+(05:17 UTC) and by hand - not on pushes or pull requests (since 16.10.2026, to
+save GitHub Actions minutes). Setup:
 
 - a matrix over 3 shards (`--shard=1/3`, `2/3`, `3/3`), with `retries: 1` in
   CI. chromium and firefox are Playwright projects in `playwright.config.ts`,
