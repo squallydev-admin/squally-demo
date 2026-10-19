@@ -1,12 +1,12 @@
 import { expect, test } from "@playwright/test";
 import { addFromList } from "./helpers";
 
-test("an empty cart says so", async ({ page }) => {
+test("an empty cart says so", { tag: ["@cart"] }, async ({ page }) => {
   await page.goto("/#/cart");
   await expect(page.getByTestId("cart-empty")).toHaveText("Your cart is empty.");
 });
 
-test("an added product shows in the cart", async ({ page }) => {
+test("an added product shows in the cart", { tag: ["@cart", "@smoke"] }, async ({ page }) => {
   await page.goto("/");
   await addFromList(page, "Espresso Beans");
   await expect(page.getByTestId("cart-count")).toHaveText("1");
@@ -15,7 +15,7 @@ test("an added product shows in the cart", async ({ page }) => {
   await expect(page.getByTestId("total")).toHaveText("€12.90");
 });
 
-test("changing the quantity updates line total and total", async ({ page }) => {
+test("changing the quantity updates line total and total", { tag: ["@cart"] }, async ({ page }) => {
   await page.goto("/");
   await addFromList(page, "Espresso Beans");
   await page.goto("/#/cart");
@@ -25,7 +25,7 @@ test("changing the quantity updates line total and total", async ({ page }) => {
   await expect(page.getByTestId("cart-count")).toHaveText("2");
 });
 
-test("removing the only item empties the cart", async ({ page }) => {
+test("removing the only item empties the cart", { tag: ["@cart"] }, async ({ page }) => {
   await page.goto("/");
   await addFromList(page, "Travel Mug");
   await page.goto("/#/cart");
@@ -34,7 +34,7 @@ test("removing the only item empties the cart", async ({ page }) => {
   await expect(page.getByTestId("cart-count")).toHaveText("0");
 });
 
-test("two items add up without a discount", async ({ page }) => {
+test("two items add up without a discount", { tag: ["@cart"] }, async ({ page }) => {
   await page.goto("/");
   await addFromList(page, "Espresso Beans");
   await addFromList(page, "Green Tea");
@@ -44,7 +44,7 @@ test("two items add up without a discount", async ({ page }) => {
   await expect(page.getByTestId("total")).toHaveText("€19.40");
 });
 
-test("the cart survives a reload", async ({ page }) => {
+test("the cart survives a reload", { tag: ["@cart"] }, async ({ page }) => {
   await page.goto("/");
   await addFromList(page, "Chai Spice");
   await page.reload();
@@ -53,7 +53,7 @@ test("the cart survives a reload", async ({ page }) => {
 
 // THE REAL BUG (src/mess.ts, MULTI_BUY_BUG): from 3 items on, the 10% discount
 // is taken twice. This test fails on every run until the bug is fixed.
-test("three items get the 10% multi-buy discount once", async ({ page }) => {
+test("three items get the 10% multi-buy discount once", { tag: ["@cart"] }, async ({ page }) => {
   await page.goto("/");
   await addFromList(page, "Espresso Beans");
   await addFromList(page, "Green Tea");
@@ -67,7 +67,7 @@ test("three items get the 10% multi-buy discount once", async ({ page }) => {
 // The same bug, marked as known: Playwright expects this test to fail and
 // reports it as passing. Fix the bug and this test turns red - the marker is
 // then out of date and should be removed.
-test("four items get the 10% multi-buy discount once", async ({ page }) => {
+test("four items get the 10% multi-buy discount once", { tag: ["@cart"] }, async ({ page }) => {
   test.fail(true, "Known bug: multi-buy discount is taken twice (src/mess.ts)");
   await page.goto("/");
   for (let i = 0; i < 4; i++) await addFromList(page, "Green Tea");
@@ -78,7 +78,7 @@ test("four items get the 10% multi-buy discount once", async ({ page }) => {
 
 // DELIBERATE MESS: the estimate arrives after a random 0–3 s (src/mess.ts), and
 // this test waits only 2.5 s.
-test("shows a delivery estimate", async ({ page }) => {
+test("shows a delivery estimate", { tag: ["@cart"] }, async ({ page }) => {
   await page.goto("/");
   await addFromList(page, "Earl Grey");
   await page.goto("/#/cart");

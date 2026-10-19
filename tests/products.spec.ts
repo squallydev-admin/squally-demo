@@ -4,7 +4,7 @@ test.beforeEach(async ({ page }) => {
   await page.goto("/");
 });
 
-test("lists all products", async ({ page }) => {
+test("lists all products", { tag: ["@smoke"] }, async ({ page }) => {
   await expect(page.getByTestId("product-card")).toHaveCount(12);
   await expect(page.getByTestId("result-count")).toHaveText("12 products");
 });

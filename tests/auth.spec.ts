@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { logIn } from "./helpers";
 
-test("the demo user can log in", async ({ page }) => {
+test("the demo user can log in", { tag: ["@smoke"] }, async ({ page }) => {
   await logIn(page);
   await expect(page.getByRole("heading", { name: "Order history" })).toBeVisible();
   await expect(page.getByTestId("signed-in")).toHaveText("Signed in as demo");

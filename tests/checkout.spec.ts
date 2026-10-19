@@ -8,13 +8,13 @@ async function startCheckout(page: Page): Promise<void> {
   await expect(page.getByTestId("checkout-total")).toHaveText("€12.90");
 }
 
-test("checkout with an empty cart goes back to the cart", async ({ page }) => {
+test("checkout with an empty cart goes back to the cart", { tag: ["@checkout"] }, async ({ page }) => {
   await page.goto("/#/checkout");
   await expect(page).toHaveURL(/#\/cart$/);
   await expect(page.getByTestId("cart-empty")).toBeVisible();
 });
 
-test("every field is required", async ({ page }) => {
+test("every field is required", { tag: ["@checkout"] }, async ({ page }) => {
   await startCheckout(page);
   await page.getByRole("button", { name: "Place order" }).click();
   await expect(page.getByTestId("error-name")).toHaveText("Full name is required.");
@@ -24,7 +24,7 @@ test("every field is required", async ({ page }) => {
   await expect(page.getByTestId("error-city")).toHaveText("City is required.");
 });
 
-test("an invalid email is rejected", async ({ page }) => {
+test("an invalid email is rejected", { tag: ["@checkout"] }, async ({ page }) => {
   await startCheckout(page);
   await fillCheckout(page, { Email: "erika.example.com" });
   await page.getByRole("button", { name: "Place order" }).click();
@@ -32,14 +32,14 @@ test("an invalid email is rejected", async ({ page }) => {
   await expect(page).toHaveURL(/#\/checkout$/);
 });
 
-test("a postcode that is not 5 digits is rejected", async ({ page }) => {
+test("a postcode that is not 5 digits is rejected", { tag: ["@checkout"] }, async ({ page }) => {
   await startCheckout(page);
   await fillCheckout(page, { Postcode: "1011" });
   await page.getByRole("button", { name: "Place order" }).click();
   await expect(page.getByTestId("error-postcode")).toHaveText("Postcode must be 5 digits.");
 });
 
-test("placing an order shows the confirmation", async ({ page }) => {
+test("placing an order shows the confirmation", { tag: ["@checkout", "@smoke"] }, async ({ page }) => {
   await startCheckout(page);
   await fillCheckout(page);
   await page.getByRole("button", { name: "Place order" }).click();
@@ -48,7 +48,7 @@ test("placing an order shows the confirmation", async ({ page }) => {
   await expect(page.getByTestId("order-total")).toHaveText("€12.90");
 });
 
-test("the cart is empty after ordering", async ({ page }) => {
+test("the cart is empty after ordering", { tag: ["@checkout"] }, async ({ page }) => {
   await startCheckout(page);
   await fillCheckout(page);
   await page.getByRole("button", { name: "Place order" }).click();
@@ -56,7 +56,7 @@ test("the cart is empty after ordering", async ({ page }) => {
   await expect(page.getByTestId("cart-count")).toHaveText("0");
 });
 
-test.skip("pays with PayPal", async ({ page }) => {
+test.skip("pays with PayPal", { tag: ["@checkout"] }, async ({ page }) => {
   // Not built yet: the shop has no payment step at all.
   await startCheckout(page);
   await page.getByRole("button", { name: "Pay with PayPal" }).click();
