@@ -50,10 +50,38 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Both browsers in every job: chromium and firefox are Playwright
-      # projects, and --shard splits the tests of both across the shards.
+      # BROWSERS FROM A CACHE (27.10.2026): Tests #88's shard 2 hung for over
+      # ten minutes downloading them while shards 1 and 3 took 25 seconds.
+      # The cache holds ~/.cache/ms-playwright per Playwright version (the one
+      # npm ci installed), so a version bump downloads once and every other
+      # run skips the download. Both browsers in every job: chromium and
+      # firefox are Playwright projects, and --shard splits the tests of both
+      # across the shards. Chromium only as the headless shell - the suite
+      # never runs headed.
+      - name: Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: browser-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium-shell-firefox
+
+      # A hung download or apt mirror fails the job after 5 minutes instead of
+      # holding it until the job timeout.
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium firefox
+        if: steps.browser-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 5
+        run: npx playwright install --with-deps --only-shell chromium firefox
+
+      # The system libraries are not in the cache (apt, outside the home
+      # directory); on a cache hit only they are installed.
+      - name: Install browser system dependencies
+        if: steps.browser-cache.outputs.cache-hit == 'true'
+        timeout-minutes: 5
+        run: npx playwright install-deps chromium firefox
 
       - name: Run Playwright tests
         # exec: a cancelled workflow sends SIGINT only to the step's top-level
