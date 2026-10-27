@@ -48,3 +48,12 @@ jobs:
         # exec: a cancelled workflow sends SIGINT only to the step's top-level
         # process, so Playwright must be that process to report "cancelled".
         run: exec ./node_modules/.bin/playwright test --shard=${{ matrix.shard }}/3
+
+      # "Cancel workflow" (27.10.2026, squally-reporter 0.14.0): GitHub's
+      # SIGINT does not always reach Playwright, and a shard still queued never
+      # starts at all - this marks the Squally run cancelled either way, with
+      # the job's own key and SQUALLY_CI_RUN_ID from the env above. The run
+      # page then says "Cancelled via the CLI".
+      - name: Mark Squally run cancelled
+        if: ${{ cancelled() }}
+        run: npx squally-reporter cancel
