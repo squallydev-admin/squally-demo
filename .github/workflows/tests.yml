@@ -64,9 +64,9 @@ jobs:
         id: playwright
         run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
 
-      - name: Cache Playwright browsers
+      - name: Restore Playwright browsers
         id: browser-cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium-shell-firefox
@@ -74,9 +74,22 @@ jobs:
       # A hung download or apt mirror fails the job after 5 minutes instead of
       # holding it until the job timeout.
       - name: Install Playwright browsers
+        id: browser-install
         if: steps.browser-cache.outputs.cache-hit != 'true'
         timeout-minutes: 5
         run: npx playwright install --with-deps --only-shell chromium firefox
+
+      # Saved right after the install, not at the end of the job: actions/cache
+      # saves only from a job that succeeds, and shard 1 always fails (the real
+      # bug) - Tests #89 saved nothing. always(): a cancel that lands right
+      # after the install does not skip the save. When several shards save the same key, one
+      # wins and the others only warn.
+      - name: Save Playwright browsers
+        if: always() && steps.browser-install.outcome == 'success' && steps.browser-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ steps.browser-cache.outputs.cache-primary-key }}
 
       # The system libraries are not in the cache (apt, outside the home
       # directory); on a cache hit only they are installed.
