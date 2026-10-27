@@ -9,6 +9,15 @@ on:
     # Minute :17, not :00 - GitHub delays or skips runs queued on the hour.
     - cron: "17 5 * * *"
   workflow_dispatch:
+    inputs:
+      # For trying "Cancel workflow" (27.10.2026): the suite takes about 30
+      # seconds, too fast to cancel by hand. "slow" adds one test that waits
+      # about 3 minutes (tests/slow-cancel.spec.ts). The schedule has no
+      # inputs, so it never runs slow.
+      slow:
+        description: Add one test that waits ~3 min, to try Cancel workflow
+        type: boolean
+        default: false
 
 jobs:
   test:
@@ -28,6 +37,8 @@ jobs:
       # One Squally run per workflow run, made of the three shards. (The
       # reporter's own default on GitHub Actions is the same value.)
       SQUALLY_CI_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+      # "1" only for a manual run with slow ticked; empty on schedule.
+      SLOW_CANCEL: ${{ inputs.slow && '1' || '' }}
     steps:
       - uses: actions/checkout@v4
 

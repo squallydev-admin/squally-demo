@@ -14,8 +14,12 @@ if (process.env.SQUALLY_REPORT === "1") {
 export default defineConfig({
   testDir: "./tests",
   // The attempt gate runs only in the matrix scenarios that ask for it
-  // (.github/workflows/matrix-scenarios.yml); tests.yml never sees it.
-  testIgnore: process.env.ATTEMPT_GATE === "1" ? [] : ["**/attempt-gate.spec.ts"],
+  // (.github/workflows/matrix-scenarios.yml); tests.yml never sees it. The
+  // slow cancel test only in tests.yml's manual "slow" mode, never on schedule.
+  testIgnore: [
+    ...(process.env.ATTEMPT_GATE === "1" ? [] : ["**/attempt-gate.spec.ts"]),
+    ...(process.env.SLOW_CANCEL === "1" ? [] : ["**/slow-cancel.spec.ts"]),
+  ],
   fullyParallel: true,
   forbidOnly: isCI,
   retries: isCI ? 1 : 0,
