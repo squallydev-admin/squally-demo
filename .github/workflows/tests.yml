@@ -50,8 +50,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # BROWSERS FROM A CACHE (27.10.2026): Tests #88's shard 2 hung for over
-      # ten minutes downloading them while shards 1 and 3 took 25 seconds.
+      # BROWSERS FROM A CACHE (27.10.2026): Tests #88's shard 2 hung for 11
+      # minutes in this step while shards 1 and 3 took 25 seconds - apt
+      # fetching the system libraries from a mirror at ~50 kB/s. The cache
+      # cannot hold those (see below); the 5-minute timeout bounds them.
       # The cache holds ~/.cache/ms-playwright per Playwright version (the one
       # npm ci installed), so a version bump downloads once and every other
       # run skips the download. Both browsers in every job: chromium and
