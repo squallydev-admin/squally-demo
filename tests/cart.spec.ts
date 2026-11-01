@@ -6,7 +6,7 @@ test("an empty cart says so", { tag: ["@cart"] }, async ({ page }) => {
   await expect(page.getByTestId("cart-empty")).toHaveText("Your cart is empty.");
 });
 
-test("an added product shows in the cart", { tag: ["@cart", "@smoke"] }, async ({ page }) => {
+test("an added product shows in the cart", { tag: ["@cart", "@smoke"], annotation: { type: "owner", description: "cart-team" } }, async ({ page }) => {
   await page.goto("/");
   await addFromList(page, "Espresso Beans");
   await expect(page.getByTestId("cart-count")).toHaveText("1");
@@ -53,7 +53,8 @@ test("the cart survives a reload", { tag: ["@cart"] }, async ({ page }) => {
 
 // THE REAL BUG (src/mess.ts, MULTI_BUY_BUG): from 3 items on, the 10% discount
 // is taken twice. This test fails on every run until the bug is fixed.
-test("three items get the 10% multi-buy discount once", { tag: ["@cart"] }, async ({ page }) => {
+// Its issue is an annotation, not part of the title (the test's identity).
+test("three items get the 10% multi-buy discount once", { tag: ["@cart"], annotation: { type: "issue", description: "https://github.com/squallydev-admin/squally-demo/issues/3" } }, async ({ page }) => {
   await page.goto("/");
   await addFromList(page, "Espresso Beans");
   await addFromList(page, "Green Tea");

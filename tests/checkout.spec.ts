@@ -39,7 +39,7 @@ test("a postcode that is not 5 digits is rejected", { tag: ["@checkout"] }, asyn
   await expect(page.getByTestId("error-postcode")).toHaveText("Postcode must be 5 digits.");
 });
 
-test("placing an order shows the confirmation", { tag: ["@checkout", "@smoke"] }, async ({ page }) => {
+test("placing an order shows the confirmation", { tag: ["@checkout", "@smoke"], annotation: { type: "owner", description: "checkout-team" } }, async ({ page }) => {
   await startCheckout(page);
   await fillCheckout(page);
   await page.getByRole("button", { name: "Place order" }).click();

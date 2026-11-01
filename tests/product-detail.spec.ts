@@ -27,7 +27,8 @@ test("an unknown product shows not found", async ({ page }) => {
 });
 
 // DELIBERATE MESS: the stock check fails on ~15% of page loads (src/mess.ts).
-test("stock check reports in stock", async ({ page }) => {
+// Its issue is an annotation, not part of the title (the test's identity).
+test("stock check reports in stock", { annotation: { type: "issue", description: "https://github.com/squallydev-admin/squally-demo/issues/4" } }, async ({ page }) => {
   await page.goto("/#/product/green-tea");
   await expect(page.getByTestId("stock")).toHaveText("In stock");
 });
