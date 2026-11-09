@@ -74,7 +74,7 @@ npx playwright test --retries=1           # see flaky tests as "flaky"
 ```
 
 `npx playwright test` builds the app and starts `vite preview` on port 4173
-itself (the `webServer` block in `playwright.config.ts`). To look at the shop:
+itself (the `webServer` block in `playwright.config.ts`). To browse the shop:
 `npm run dev`. Local runs use at most 2 workers: on Windows, more parallel
 Chromium instances hung their page loads (see the comment in the config).
 
