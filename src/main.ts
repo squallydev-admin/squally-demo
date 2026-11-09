@@ -83,7 +83,7 @@ function renderProductList(): void {
   const empty = app.querySelector<HTMLElement>("[data-testid=empty-state]")!;
 
   const update = () => {
-    const term = search.value.trim().toLowerCase();
+    const term = search.value.trim();
     const matches = PRODUCTS.filter(
       (p) => (!category.value || p.category === category.value) && p.name.toLowerCase().includes(term),
     );
