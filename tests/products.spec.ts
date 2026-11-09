@@ -20,6 +20,12 @@ test("search ignores case", async ({ page }) => {
   await expect(page.getByTestId("product-card")).toHaveCount(3);
 });
 
+test("search ignores spaces around the term", async ({ page }) => {
+  await page.getByPlaceholder("Search products").fill("  mug  ");
+  await expect(page.getByTestId("product-card")).toHaveCount(1);
+  await expect(page.getByRole("link", { name: "Travel Mug" })).toBeVisible();
+});
+
 test("search without a match shows the empty state", async ({ page }) => {
   await page.getByPlaceholder("Search products").fill("matcha");
   await expect(page.getByTestId("product-card")).toHaveCount(0);
