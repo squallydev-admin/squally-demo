@@ -103,3 +103,4 @@ npx playwright test
 A run outside CI is a **local run**: Squally shows it in the runs list with a
 "Local" marker and counts it nowhere else. That is what this is for. Don't set
 `CI=true` locally: the reporter would then treat the run as a CI run.
+
