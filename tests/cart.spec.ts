@@ -52,7 +52,7 @@ test("the cart survives a reload", { tag: ["@cart"] }, async ({ page }) => {
 });
 
 // THE REAL BUG (src/mess.ts, MULTI_BUY_BUG): from 3 items on, the 10% discount
-// is taken twice. This test fails on every run until the bug is fixed.
+// was taken twice. Fixed in this demo branch, so this test passes.
 // Its issue is an annotation, not part of the title (the test's identity).
 test("three items get the 10% multi-buy discount once", { tag: ["@cart"], annotation: { type: "issue", description: "https://github.com/squallydev-admin/squally-demo/issues/3" } }, async ({ page }) => {
   await page.goto("/");
@@ -65,11 +65,9 @@ test("three items get the 10% multi-buy discount once", { tag: ["@cart"], annota
   await expect(page.getByTestId("total")).toHaveText("€25.47");
 });
 
-// The same bug, marked as known: Playwright expects this test to fail and
-// reports it as passing. Fix the bug and this test turns red - the marker is
-// then out of date and should be removed.
+// The same bug, once marked as known with test.fail(); the marker went with
+// the fix, so this test simply passes.
 test("four items get the 10% multi-buy discount once", { tag: ["@cart"] }, async ({ page }) => {
-  test.fail(true, "Known bug: multi-buy discount is taken twice (src/mess.ts)");
   await page.goto("/");
   for (let i = 0; i < 4; i++) await addFromList(page, "Green Tea");
   await page.goto("/#/cart");

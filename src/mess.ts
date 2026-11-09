@@ -16,7 +16,7 @@ export const SLOW_PAGE_MS = 8000;
  * so the cart total is wrong. Set to false to "fix" it - the failing test
  * then passes and the test.fail() test turns red.
  */
-export const MULTI_BUY_BUG = true;
+export const MULTI_BUY_BUG = false;
 
 export function randomDelay(): number {
   return Math.floor(Math.random() * (MAX_RANDOM_DELAY_MS + 1));
