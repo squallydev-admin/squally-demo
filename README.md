@@ -1,6 +1,6 @@
 # squally-demo
 
-A tiny web shop and its own Playwright suite, run in GitHub Actions, whose only
+A small web shop and its own Playwright suite, run in GitHub Actions, whose only
 job is to feed **realistic, messy test data** into
 [Squally](https://app.squally.dev): passes, flaky tests, one real failure, a
 skipped test, an expected failure and a slow test.
